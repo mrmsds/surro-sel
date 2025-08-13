@@ -22,6 +22,7 @@ from scipy.spatial.distance import cdist
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.preprocessing import StandardScaler
 
+
 class SurrogateSelection:
     """Utility class for chemical space surrogate selection."""
 
@@ -34,7 +35,7 @@ class SurrogateSelection:
         HIERARCHICAL = auto()
 
     def __init__(self, data):
-        """Constructor for SurrogateSelection class.
+        """Constructor for SurrogateSelection utility class.
         
         Args:
             data: non-standardized ionization efficiency descriptor matrix
@@ -56,8 +57,20 @@ class SurrogateSelection:
     def _medoid(x):
         return np.argmin(cdist(x, np.mean(x, axis=0).reshape(1, -1)))
 
+    def score(self, s):
+        """Calculate LARD score for a set of surrogates.
+        
+        Args:
+            s: indices of selected surrogates
+        Returns:
+            LARD score for selected surrogates
+        """
+
+        return np.dot(self.h, np.min(cdist(self.X, self.X[s]), axis=1))\
+            / self.X.shape[0]
+
     def select(self, n, strategy):
-        """Select surrogates based on the specified strategy and number.
+        """Select surrogates based on specified strategy and number.
         
         Args:
             n: number of surrogates or fraction of dataset to select
@@ -66,9 +79,9 @@ class SurrogateSelection:
             tuple of selected surrogate indices and corresponding LARD score
         """
 
-        # Calculate "effective" n depending on whether input is <= 1
+        # Calculate "effective" n depending on whether input is < 1
         X_size = self.X.shape[0]
-        n_eff = round(n * X_size) if n <= 1 else round(n)
+        n_eff = round(n * X_size if n < 1 else n)
 
         # Select surrogates based on the specified strategy
         match strategy:
@@ -94,15 +107,3 @@ class SurrogateSelection:
 
         # Return surrogate indices and LARD score
         return surrogates, self.score(surrogates)
-
-    def score(self, s):
-        """Calculate the LARD score for the selected surrogates.
-        
-        Args:
-            s: indices of selected surrogates
-        Returns:
-            LARD score for the selected surrogates
-        """
-
-        return np.dot(self.h, np.min(cdist(self.X, self.X[s]), axis=1))\
-            / self.X.shape[0]
