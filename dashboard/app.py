@@ -2,10 +2,14 @@
 
 import pandas as pd
 from shiny import App, reactive, ui
+from shinyswatch import theme
 
-from files import get_datasets, update_log, LAST_UPDATED
-from modals.load import load_modal, load_modal_server
-from shared import APP_THEME
+from dashboard.files import get_datasets, update_log, LAST_UPDATED
+from dashboard.modals.load import load_modal, load_modal_server
+
+# App formatting constants
+THEME = theme.pulse
+NAVBAR_OPTIONS = {'class': 'bg-primary', 'theme': 'dark'}
 
 # Initialize the data file and update log folder on app start
 update_log()
@@ -13,20 +17,21 @@ update_log()
 # Main application page UI
 page = ui.page_navbar(
     fillable=True,
-    theme=APP_THEME,
-    navbar_options=ui.navbar_options(
-        **{'class': 'bg-primary', 'theme': 'dark'})
+    theme=THEME,
+    navbar_options=ui.navbar_options(**NAVBAR_OPTIONS)
 )
 
 # Main application page server
+# pylint: disable-next=C0116,W0622,W0613 # Avoid errors from server syntax
 def server(input, output, session):
+    # pylint: disable=E1120,E1121 # Avoid errors from all module calls
 
     # Reactive value for list of available loaded dataset names
     datasets = reactive.value([])
     # Original data and calculated descriptors for current dataset
     data = reactive.value(pd.DataFrame())
     desc = reactive.value(pd.DataFrame())
-    # Data groupings (displayed as colors)
+    # Data labels (displayed as colors)
     labels = reactive.value(None)
 
     def set_data(data_, desc_):

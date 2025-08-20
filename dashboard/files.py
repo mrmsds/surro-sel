@@ -13,6 +13,10 @@ DESC_FILENAME = 'desc.parquet'
 DATA_FOLDER = './data'
 LAST_UPDATED = os.path.join(DATA_FOLDER, 'last_updated.txt')
 
+def get_datasets():
+    """List available dataset names from data folder."""
+    return [f for f in os.listdir(DATA_FOLDER) if not '.' in f]
+
 def update_log():
     """Update last updated log file with current timestamp."""
 
@@ -21,12 +25,8 @@ def update_log():
         os.makedirs(DATA_FOLDER, exist_ok=True)
 
     # Write the current timestamp to the last updated file
-    with open(LAST_UPDATED, 'w') as last_updated_file:
+    with open(LAST_UPDATED, 'w', encoding='utf-8') as last_updated_file:
         last_updated_file.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-
-def get_datasets():
-    """List available dataset names from data folder."""
-    return [x for x in os.listdir(DATA_FOLDER) if not '.' in x]
 
 def load_data(name):
     """Read data and descriptor files from a specified data directory.

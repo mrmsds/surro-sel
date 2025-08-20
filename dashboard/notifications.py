@@ -6,15 +6,7 @@ from shiny.ui import notification_show
 
 DEFAULT_DURATION = 3
 DEFAULT_TYPE = 'message'
-
-def _notify(message, type=DEFAULT_TYPE):
-    notification_show(message, type=type, duration=DEFAULT_DURATION)
-
 LOAD_SUCCESS_MESSAGE = 'Successfully loaded %d records (%d structurable).'
-
-def notify_load_success(n_records, n_structs):
-    """Display a notification for successful data load."""
-    _notify(LOAD_SUCCESS_MESSAGE % (n_records, n_structs))
 
 class ValidationErrors(StrEnum):
     """Enum for application form validation error types."""
@@ -42,9 +34,29 @@ ERROR_MESSAGES = {
     ValidationErrors.NO_N: 'Number of surrogates must be greater than zero.'
 }
 
-def notify_error(key):
-    """Display an error notification based on key."""
+# pylint: disable-next=W0622 # Avoid error from overriding built-in 'type'
+def _notification(message, type=DEFAULT_TYPE):
+    # Generic notification function with a specified type and default duration
+    notification_show(message, type=type, duration=DEFAULT_DURATION)
+
+def load_success_notification(n_records, n_structs):
+    """Display a notification for successful data load.
+    
+    Args:
+        n_records: total number of records loaded
+        n_structs: number of loaded records with structures
+    """
+
+    _notification(LOAD_SUCCESS_MESSAGE % (n_records, n_structs))
+
+def error_notification(key):
+    """Display an error notification based on key.
+    
+    Args:
+        key: dictionary key (from ValidationErrors enum) for error type
+    """
+
     if key in ERROR_MESSAGES:
-        _notify(ERROR_MESSAGES[key], type='error')
+        _notification(ERROR_MESSAGES[key], type='error')
     else:
         raise ValueError(f'Error key {key} not found.')

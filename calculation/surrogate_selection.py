@@ -1,4 +1,4 @@
-"""Utility class to perform chemical space surrogate selection.
+"""Calculator class to perform chemical space surrogate selection.
 
 This class implements multiple surrogate selection strategies as
 proposed by Charest et al. (2025): DOI:10.1007/s00216-025-05919-8.
@@ -24,7 +24,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 class SurrogateSelection:
-    """Utility class for chemical space surrogate selection."""
+    """Calculator class for chemical space surrogate selection."""
 
     class Strategy(StrEnum):
         """Enum for implemented surrogate selection strategies."""
@@ -35,13 +35,14 @@ class SurrogateSelection:
         HIERARCHICAL = auto()
 
     def __init__(self, data):
-        """Constructor for SurrogateSelection utility class.
+        """Constructor for SurrogateSelection calculator class.
         
         Args:
             data: non-standardized ionization efficiency descriptor matrix
         """
 
         # Store a mean-variance standardized array of the input data
+        # pylint: disable-next=C0103 # Capitalize variable for math convention
         self.X = StandardScaler().fit_transform(data)
         # Calculate leverages for all data points
         self.h = np.diagonal(
@@ -80,6 +81,7 @@ class SurrogateSelection:
         """
 
         # Calculate "effective" n depending on whether input is < 1
+        # pylint: disable-next=C0103 # Capitalize variable for math convention
         X_size = self.X.shape[0]
         n_eff = round(n * X_size if n < 1 else n)
 
@@ -96,9 +98,8 @@ class SurrogateSelection:
                     self._lowest_n_leverage(n_eff - n_half)
                 ])
             case self.Strategy.HIERARCHICAL:
-                clusters = AgglomerativeClustering(
-                    n_clusters=n_eff
-                ).fit_predict(self.X)
+                clusters = AgglomerativeClustering(n_clusters=n_eff)\
+                    .fit_predict(self.X)
                 cl_idx = [np.where(clusters == cl)[0] for cl in range(n_eff)]
                 surrogates = [idx[self._medoid(self.X[idx])] for idx in cl_idx]
             case _:

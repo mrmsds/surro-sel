@@ -6,11 +6,12 @@ existing dataset (previously uploaded and stored as a parquet file).
 
 from shiny import module, reactive, render, ui
 
-from notifications import notify_error, notify_load_success, ValidationErrors
-from files import load_data
+from dashboard.notifications import (
+    ValidationErrors, error_notification, load_success_notification)
+from dashboard.files import load_data
 
 @module.ui
-def load_modal():
+def load_modal(): # pylint: disable=C0116 # Allow no docstring for UI
     return ui.modal(
         ui.output_ui('name_select'),
         title='Load Existing Dataset',
@@ -22,6 +23,7 @@ def load_modal():
     )
 
 @module.server
+# pylint: disable-next=C0116,W0622,W0613 # Avoid errors from server syntax
 def load_modal_server(input, output, session, datasets, _set_data):
 
     @render.ui
@@ -36,15 +38,15 @@ def load_modal_server(input, output, session, datasets, _set_data):
 
         # Show an error if button clicked without a selection
         if not input.name():
-            notify_error(ValidationErrors.NO_NAME)
-            return # Stop processing, but do not close the modal
+            error_notification(ValidationErrors.NO_NAME)
+            return # Stop processing, but leave the modal open
 
         # Otherwise, read data files and update global app data
         data, desc = load_data(input.name())
         _set_data(data, desc)
 
         # Show success notification
-        notify_load_success(data.shape[0], desc.shape[0])
+        load_success_notification(data.shape[0], desc.shape[0])
 
         # Close modal
         ui.modal_remove()
