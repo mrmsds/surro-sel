@@ -17,12 +17,11 @@ update_log()
 
 # Main application page UI
 page = ui.page_navbar(
-    ui.nav_panel(title='Placeholder'),
+    ui.nav_panel(''),
+    ui.nav_spacer(),
+    ui.nav_control(ui.input_action_button('load', 'Load Existing Data')),
+    ui.nav_control(ui.input_action_button('upload', 'Upload New Data')),
     title='qNTA SurroSel',
-    sidebar=ui.sidebar(
-        ui.input_action_button('load', 'Load Existing Data'),
-        ui.input_action_button('upload', 'Upload New Data')
-    ),
     fillable=True,
     theme=THEME,
     navbar_options=ui.navbar_options(**NAVBAR_OPTIONS)

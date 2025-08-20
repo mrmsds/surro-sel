@@ -72,35 +72,81 @@ def upload_modal_server(input, output, session, datasets, _set_data):
         ui.update_selectize('qrs_col', choices=choices)
         ui.update_selectize('ignore_cols', choices=choices)
 
+    def validate_name(name):
+        """Validate user input dataset name.
+
+        Based on the current name conditions, no more than one error will
+        ever be returned for the dataset name, but this function is extensible
+        to multiple error conditions.
+        
+        Args:
+            name: user input dataset name
+        Returns:
+            list of error message keys from ValidationErrors, or empty list
+        """
+
+        errors = []
+        if not name:
+            # Validate name was provided
+            errors.append(ValidationErrors.NO_NAME)
+        elif name.lower() in [x.lower() for x in datasets()]:
+            # Validate name not duplicate of existing (case insensitive)
+            errors.append(ValidationErrors.NAME_DUP)
+        elif not re.fullmatch(NAME_PATTERN, name):
+            # Validate name permissible
+            errors.append(ValidationErrors.NAME_INVALID)
+
+        return errors
+
+    def validate_data(data, id_col, qrs_col):
+        """Validate user input data and column selections.
+
+        Based on the current conditions, no more than one error will
+        ever be returned for the data or column selections, but this function
+        is extensible to multiple error conditions.
+
+        Args:
+            data: user input df
+            id_col: user selected ID col from data
+            qrs_col: user selected QSAR-ready SMILES col from data
+        Returns:
+            list of error message keys from ValidationErrors, or empty list
+        """
+
+        errors = []
+        if data.empty:
+            # Validate data provided
+            errors.append(ValidationErrors.NO_FILE)
+        elif id_col == qrs_col:
+            # Validate columns not duplicated
+            errors.append(ValidationErrors.COLS_DUP)
+
+        return errors
+
     def clear_and_close():
-        """Clear entered data and close the modal."""
+        """Clear entered data and close the modal.
+
+        This is reused for user close on button click and to finish processing
+        and close modal after data upload.
+        """
         temp.set(pd.DataFrame())
         ui.modal_remove()
 
     @reactive.effect
+    @reactive.event(input.close)
+    def close():
+        """Clear temp data and close the modal on close button click."""
+        clear_and_close()
+
+    @reactive.effect
     @reactive.event(input.upload)
     def upload():
-        """Perform data validation and final upload on button click."""
+        """Perform data validation and final upload on upload button click."""
 
-        errors = []
-        # Check dataset name
-        if not input.name():
-            # Check dataset name provided
-            errors.append(ValidationErrors.NO_NAME)
-        elif input.name().lower() in [x.lower() for x in datasets()]:
-            # Check dataset name not duplicated (case insensitive)
-            errors.append(ValidationErrors.NAME_DUP)
-        elif not re.fullmatch(NAME_PATTERN, input.name()):
-            # Check dataset for valid length and characters
-            errors.append(ValidationErrors.NAME_INVALID)
-
-        # Check data and column inputs
-        if temp().empty:
-            # Check data was provided and read
-            errors.append(ValidationErrors.NO_FILE)
-        elif input.qrs_col() == input.id_col():
-            # Check column selections not duplicated
-            errors.append(ValidationErrors.COLS_DUP)
+        # Check for dataset name validation errors
+        errors = validate_name(input.name())
+        # Check for data and column selection validation errors
+        errors.extend(validate_data(temp(), input.id_col(), input.qrs_col()))
 
         # Short-circuit with notification(s) if needed
         if len(errors) > 0:
@@ -109,31 +155,21 @@ def upload_modal_server(input, output, session, datasets, _set_data):
                 error_notification(err)
             return # Stop processing, but do not close the modal
 
-        # Set index, drop user ignored columns, and propagate a copy of temp
-        # data to final
-        cols_to_drop = [
-            col for col in input.ignore_cols() if not col == input.qrs_col()]
-        data = temp().copy(deep=True).set_index(input.id_col())\
-            .drop(columns=cols_to_drop)
+        # Set index, drop user ignored columns, and propagate a copy of data
+        cdrop = [c for c in input.ignore_cols() if not c == input.qrs_col()]
+        data = temp().copy(deep=True)\
+            .set_index(input.id_col()).drop(columns=cdrop)
 
         # Calculate ionization efficiency descriptors and TSNE
         desc = calculate_ionization_efficiency(
             data[input.qrs_col()], data.index, with_tsne=True)
 
-        # Save data frames as parquet files
-        save_data(input.name(), data, desc)
-
         # Use callback to update global app data
         _set_data(data, desc)
 
-        # Show success notification
+        # Save data frames as parquet files
+        save_data(input.name(), data, desc)
+
+        # Show success notification, clear temp data, and close modal
         load_success_notification(data.shape[0], desc.shape[0])
-
-        # Clear temp data and close modal
-        clear_and_close()
-
-    @reactive.effect
-    @reactive.event(input.close)
-    def close():
-        """Clear temp data and close the modal on button click."""
         clear_and_close()
