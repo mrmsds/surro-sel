@@ -32,8 +32,8 @@ _desc_calculator = Calculator([
     MolecularId.MolecularId(averaged=True, type='C'),
     MolecularId.MolecularId(averaged=True, type='O'),
     # SsssN, SdO
-    EState.AtomTypeEState(type=str(EState.AggrType.sum), estate='sssN'),
-    EState.AtomTypeEState(type=str(EState.AggrType.sum), estate='dO'),
+    EState.AtomTypeEState(type=EState.AggrType.sum, estate='sssN'),
+    EState.AtomTypeEState(type=EState.AggrType.sum, estate='dO'),
     # EState_VSA{1:10}
     MoeType.EState_VSA,
     # PEOE_VSA{1:13}
@@ -68,10 +68,10 @@ def calculate_ionization_efficiency(smiles, index, with_tsne):
     # Calculate ionization efficiency descriptors
     # nproc=1 avoids paging space issues in Shiny deployment
     desc = _desc_calculator.pandas(mols, nproc=1, quiet=True)
-    # Remove placeholder descriptors from invalid structures
-    desc.drop(labels=bad_idx, inplace=True)
     # Attach index values
     desc.index = index
+    # Remove placeholder descriptors from invalid structures
+    desc.drop(desc.index[bad_idx], inplace=True)
 
     # Optionally calculate and append TSNE coordinates
     if with_tsne:
