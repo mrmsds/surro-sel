@@ -21,10 +21,8 @@ class ValidationErrors(StrEnum):
 
 ERROR_MESSAGES = {
     ValidationErrors.NO_NAME: 'Dataset name is required.',
-    ValidationErrors.NAME_LEN: 'Dataset name must be at least two chars and '
-        'no more than 32 chars.',
-    ValidationErrors.NAME_INVALID: 'Invalid characters in dataset name. '
-        'Only alphanumerics, underscores, dashes, and spaces are permitted.',
+    ValidationErrors.NAME_INVALID: 'Invalid dataset name. Requires 2-32 chars;'
+        ' only alphanumerics, underscores, dashes, and spaces are permitted.',
     ValidationErrors.NAME_DUP: 'Dataset name already in use.',
     ValidationErrors.NO_FILE: 'Missing CSV file for upload.',
     ValidationErrors.COLS_DUP: 'Primary ID and QSAR-ready SMILES column '

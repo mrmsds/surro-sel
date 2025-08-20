@@ -43,17 +43,23 @@ def load_data(name):
 
     return read_parquet(DATA_FILENAME), read_parquet(DESC_FILENAME)
 
-def save_data(path, data, desc):
+def save_data(name, data, desc):
     """Save data and descriptor files to a specified data directory.
     
     Args:
-        path: path to directory where data should be saved
+        name: dataset name to create directory
         data: original data df
         desc: calculated descriptor df
     """
 
+    # Identify new data directory location and create it
+    save_to_folder = os.path.join(DATA_FOLDER, name)
+    # exist_ok = False by default, throws FileExistsError
+    # This will prevent overwriting any existing dataset if validation fails
+    os.makedirs(save_to_folder)
+
     def save_parquet(data, fname):
-        data.to_parquet(os.path.join(path, fname), index=True)
+        data.to_parquet(os.path.join(save_to_folder, fname), index=True)
 
     save_parquet(data, DATA_FILENAME)
     save_parquet(desc, DESC_FILENAME)

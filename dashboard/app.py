@@ -1,4 +1,4 @@
-"""Parent module for the Shiny app."""
+"""Parent module for Shiny dashboard app."""
 
 import pandas as pd
 from shiny import App, reactive, ui
@@ -6,6 +6,7 @@ from shinyswatch import theme
 
 from dashboard.files import get_datasets, update_log, LAST_UPDATED
 from dashboard.modals.load import load_modal, load_modal_server
+from dashboard.modals.upload import upload_modal, upload_modal_server
 
 # App formatting constants
 THEME = theme.pulse
@@ -57,6 +58,7 @@ def server(input, output, session):
 
     # Register server information for child modules
     load_modal_server('load_modal', datasets=datasets, _set_data=set_data)
+    upload_modal_server('upload_modal', datasets=datasets, _set_data=set_data)
 
     @reactive.effect
     @reactive.file_reader(LAST_UPDATED)
