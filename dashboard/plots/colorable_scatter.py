@@ -15,14 +15,14 @@ from shinywidgets import output_widget, render_widget
 from dashboard.plots.shared import PLOTLY_TEMPLATE, PLOTLY_COLORS
 
 @module.ui
-# pylint: disable-next=C0116 # Allow no docstring for UI
+# pylint: disable-next=C0116 # Silence docstring error
 def colorable_scatterplot():
     return output_widget('scatter')
 
 @module.server
-# Avoid errors from server syntax
-# pylint: disable-next=W0622,W0613,C0116,R0913,R0917
+# pylint: disable-next=C0116,R0913,R0917 # Silence server syntax errors
 def colorable_scatterplot_server(
+    # pylint: disable-next=W0622,W0613 # Silence (more) server syntax errors
     input, output, session, data, xcol, ycol, labels, **layout_kwargs):
 
     hovered = reactive.value()
@@ -30,6 +30,7 @@ def colorable_scatterplot_server(
 
     def _set_point_index_callback(value):
         # Define a function to set the provided reactive value based on event
+        # pylint: disable-next=W0613 # Silence error from handler syntax
         def _callback(trace, points, state):
             if len(pt_idx := points.point_inds) == 1:
                 # Cheat workaround to get the index from the hovertext

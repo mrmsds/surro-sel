@@ -11,7 +11,7 @@ DOI:10.1007/s00216-025-05919-8.
 import numpy as np
 import pandas as pd
 from mordred import Calculator, MoeType, EState, MolecularId
-# pylint: disable-next=E0611 # MolFromSmiles not registered properly
+# pylint: disable-next=E0611 # Silence MolFromSmiles detection error
 from rdkit.Chem import MolFromSmiles
 from rdkit import RDLogger
 from sklearn.manifold import TSNE
@@ -61,7 +61,7 @@ def calculate_ionization_efficiency(smiles, index, with_tsne):
     mols = np.array(
         [MolFromSmiles(str(smi), sanitize=False) for smi in smiles])
     # Locate conversion failures and replace with placeholders
-    # pylint: disable-next=C0121 # Need to use equality instead of identity
+    # pylint: disable-next=C0121 # Silence identity/equality error
     bad_idx = np.where(np.array(mols) == None)[0]
     mols[bad_idx] = MolFromSmiles('', sanitize=False)
 

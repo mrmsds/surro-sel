@@ -11,7 +11,7 @@ from dashboard.notifications import (
 from dashboard.files import load_data
 
 @module.ui
-def load_modal(): # pylint: disable=C0116 # Allow no docstring for UI
+def load_modal(): # pylint: disable=C0116 # Silence missing docstring error
     return ui.modal(
         ui.output_ui('name_select'),
         title='Load Existing Dataset',
@@ -23,7 +23,7 @@ def load_modal(): # pylint: disable=C0116 # Allow no docstring for UI
     )
 
 @module.server
-# pylint: disable-next=C0116,W0622,W0613 # Avoid errors from server syntax
+# pylint: disable-next=C0116,W0622,W0613 # Silence errors from server syntax
 def load_modal_server(input, output, session, datasets, _set_data):
 
     @render.ui

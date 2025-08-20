@@ -42,7 +42,7 @@ class SurrogateSelection:
         """
 
         # Store a mean-variance standardized array of the input data
-        # pylint: disable-next=C0103 # Capitalize variable for math convention
+        # pylint: disable-next=C0103 # Silence lowercase variable convention
         self.X = StandardScaler().fit_transform(data)
         # Calculate leverages for all data points
         self.h = np.diagonal(
@@ -81,7 +81,7 @@ class SurrogateSelection:
         """
 
         # Calculate "effective" n depending on whether input is < 1
-        # pylint: disable-next=C0103 # Capitalize variable for math convention
+        # pylint: disable-next=C0103 # Silence lowercase variable convention
         X_size = self.X.shape[0]
         n_eff = round(n * X_size if n < 1 else n)
 

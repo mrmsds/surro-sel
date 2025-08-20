@@ -22,9 +22,9 @@ page = ui.page_navbar(
 )
 
 # Main application page server
-# pylint: disable-next=C0116,W0622,W0613 # Avoid errors from server syntax
+# pylint: disable-next=C0116,W0622,W0613 # Silence errors from server syntax
 def server(input, output, session):
-    # pylint: disable=E1120,E1121 # Avoid errors from all module calls
+    # pylint: disable=E1120,E1121 # Silence errors from all module calls
 
     # Reactive value for list of available loaded dataset names
     datasets = reactive.value([])

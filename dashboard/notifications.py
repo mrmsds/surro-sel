@@ -34,7 +34,7 @@ ERROR_MESSAGES = {
     ValidationErrors.NO_N: 'Number of surrogates must be greater than zero.'
 }
 
-# pylint: disable-next=W0622 # Avoid error from overriding built-in 'type'
+# pylint: disable-next=W0622 # Silence error from overriding built-in 'type'
 def _notification(message, type=DEFAULT_TYPE):
     # Generic notification function with a specified type and default duration
     notification_show(message, type=type, duration=DEFAULT_DURATION)
