@@ -6,9 +6,9 @@ existing dataset (previously uploaded and stored as a parquet file).
 
 from shiny import module, reactive, render, ui
 
-from dashboard.notifications import (
+from dashboard.utils.notifications import (
     ValidationErrors, error_notification, load_success_notification)
-from dashboard.files import load_data
+from dashboard.utils.files import load_data
 
 @module.ui
 def load_modal(): # pylint: disable=C0116 # Silence missing docstring error

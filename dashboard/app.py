@@ -1,18 +1,17 @@
-"""Parent module for Shiny dashboard app."""
+"""Parent module for qNTA SurroSel app."""
 
 import pandas as pd
 from shiny import App, reactive, ui
-from shinyswatch import theme
 
-from dashboard.files import get_datasets, update_log, LAST_UPDATED
 from dashboard.modals.load import load_modal, load_modal_server
 from dashboard.modals.upload import upload_modal, upload_modal_server
+from dashboard.sidebar import dashboard_sidebar, dashboard_sidebar_server
+from dashboard.utils.files import LAST_UPDATED, update_log, get_datasets
 
 # App formatting constants
-THEME = theme.pulse
 NAVBAR_OPTIONS = {'class': 'bg-primary', 'theme': 'dark'}
 
-# Initialize the data file and update log folder on app start
+# Initialize the data folder and log file on app start
 update_log()
 
 # Main application page UI
@@ -23,8 +22,9 @@ page = ui.page_navbar(
     ui.nav_control(ui.input_action_button('upload', 'Upload New Data')),
     title='qNTA SurroSel',
     fillable=True,
-    theme=THEME,
-    navbar_options=ui.navbar_options(**NAVBAR_OPTIONS)
+    navbar_options=ui.navbar_options(**NAVBAR_OPTIONS),
+    # pylint: disable-next=E1121 # Silence errors from module call
+    sidebar=dashboard_sidebar('sidebar')
 )
 
 # Main application page server
@@ -56,7 +56,7 @@ def server(input, output, session):
         """Callback function to allow child modules to set global labels.
 
         Args:
-            labels_: array-like of new labels
+            labels_: list of new labels
         """
 
         labels.set(labels_)
@@ -64,6 +64,7 @@ def server(input, output, session):
     # Register server information for child modules
     load_modal_server('load_modal', datasets=datasets, _set_data=set_data)
     upload_modal_server('upload_modal', datasets=datasets, _set_data=set_data)
+    dashboard_sidebar_server('sidebar', desc=desc, _set_labels=set_labels)
 
     @reactive.effect
     @reactive.file_reader(LAST_UPDATED)
