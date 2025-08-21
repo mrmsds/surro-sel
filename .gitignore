@@ -1,5 +1,6 @@
-# Data folder
+# Data folders
 data/
+sample_data/
 
 # VSCode
 .vscode/

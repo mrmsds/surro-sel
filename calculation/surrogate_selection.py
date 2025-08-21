@@ -34,16 +34,16 @@ class SurrogateSelection:
         BALANCED = auto()
         HIERARCHICAL = auto()
 
-    def __init__(self, data):
+    def __init__(self, desc):
         """Constructor for SurrogateSelection calculator class.
         
         Args:
-            data: non-standardized ionization efficiency descriptor matrix
+            desc: non-standardized ionization efficiency descriptor matrix
         """
 
-        # Store a mean-variance standardized array of the input data
+        # Store a mean-variance standardized array of the input descriptors
         # pylint: disable-next=C0103 # Silence lowercase variable convention
-        self.X = StandardScaler().fit_transform(data)
+        self.X = StandardScaler().fit_transform(desc)
         # Calculate leverages for all data points
         self.h = np.diagonal(
             self.X.dot(np.linalg.inv(self.X.T.dot(self.X)).dot(self.X.T)))

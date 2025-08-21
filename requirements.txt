@@ -8,6 +8,7 @@ colorama==0.4.6
 comm==0.2.3
 cramjam==2.11.0
 decorator==5.2.1
+et_xmlfile==2.0.0
 executing==2.2.0
 fastparquet==2024.11.0
 fsspec==2025.7.0
@@ -30,6 +31,7 @@ mordredcommunity==2.0.6
 narwhals==2.1.1
 networkx==3.5
 numpy==2.3.2
+openpyxl==3.1.5
 orjson==3.11.2
 packaging==25.0
 pandas==2.3.1
@@ -68,3 +70,4 @@ watchfiles==1.1.0
 wcwidth==0.2.13
 websockets==15.0.1
 widgetsnbextension==4.0.14
+xlrd==2.0.2

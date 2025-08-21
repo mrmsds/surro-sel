@@ -6,9 +6,11 @@ ionization efficiency descriptors as parquet files.
 """
 
 import re
+from enum import StrEnum
+from os.path import splitext
 
 import pandas as pd
-from shiny import module, reactive, req, ui
+from shiny import module, reactive, ui
 
 from calculation.ionization_efficiency import calculate_ionization_efficiency
 from dashboard.utils.files import save_data
@@ -17,6 +19,16 @@ from dashboard.utils.notifications import (
 
 # Regular expression for dataset name character validation
 NAME_PATTERN = re.compile('[A-Za-z0-9_\\- ]{2,32}')
+
+
+class FileExtensions(StrEnum):
+    """Enum of acceptable file extensions for parsing."""
+    CSV = '.csv'
+    XLS = '.xls'
+    XLSX = '.xlsx'
+    TSV = '.tsv'
+    TXT = '.txt'
+
 
 @module.ui
 def upload_modal(): # pylint: disable=C0116 # Silence missing docstring error
@@ -27,7 +39,11 @@ def upload_modal(): # pylint: disable=C0116 # Silence missing docstring error
             'and contain only alphanumerics, underscores, dashes, and spaces.'
         ),
         ui.input_file(
-            'file', 'Choose CSV File', accept=['.csv'], multiple=False),
+            'file',
+            'Choose Data File',
+            accept=[ext.value for ext in FileExtensions],
+            multiple=False
+        ),
         ui.input_selectize(
             'id_col', 'Select Primary ID Column', choices=[]),
         ui.input_selectize(
@@ -43,29 +59,72 @@ def upload_modal(): # pylint: disable=C0116 # Silence missing docstring error
     )
 
 @module.server
-# pylint: disable-next=C0116,W0622,W0613 # Silence server syntax errors
+# pylint: disable-next=C0116,W0622,W0613,R0915 # Silence server syntax errors
 def upload_modal_server(input, output, session, datasets, _set_data):
 
     # Reactive value to hold temporary data loaded from the file input,
     # used to populate selectors before processing & persisting the data
     temp = reactive.value(pd.DataFrame())
 
+    def clear_temp():
+        """Reset temp reactive to an empty data frame."""
+        temp.set(pd.DataFrame())
+
+    def read_file(file):
+        """Read a pandas df from a variety of tabular data formats.
+        
+        Args:
+            file: shiny ui.input_file upload content
+        Returns:
+            df of parsed file data
+        """
+
+        _, ext = splitext(file['name'])
+        content = file['datapath']
+
+        df = pd.DataFrame()
+        match ext:
+            case FileExtensions.CSV:
+                df = pd.read_csv(content)
+            case FileExtensions.XLS | FileExtensions.XLSX:
+                df = pd.read_excel(content)
+            case FileExtensions.TSV:
+                df = pd.read_table(content, sep='\t')
+            case FileExtensions.TXT:
+                # Infer delimiter from unspecified tabular text file
+                df = pd.read_table(content, sep=None, engine='python')
+
+        return df
+
     @reactive.effect
+    @reactive.event(input.file)
     def upload_temp():
         """Read the uploaded file into the temp reactive when input changes."""
-        temp.set(
-            pd.DataFrame()
-            if (file := input.file()) is None
-            else pd.read_csv(file[0]['datapath'])
-        )
+
+        # Check if user has provided a file
+        file = input.file()
+        if not file:
+            # Reset temp data and stop processing if no file contents
+            clear_temp()
+            return
+
+        try:
+            # Attempt parsing file contents
+            temp.set(read_file(file[0]))
+        except (pd.errors.EmptyDataError, pd.errors.ParserError):
+            # Reset temp data if parser errored out
+            clear_temp()
+        finally:
+            # If final data is empty for any reason, notify user
+            if temp().empty:
+                error_notification(ValidationErrors.FILE_INVALID)
 
     @reactive.effect()
     def update_select():
         """Update select inputs with columns from temp when it changes."""
-        req(not temp().empty)
 
-        # List columns from the temp data frame
-        choices = list(temp().columns)
+        # Get available columns from temp data (or empty list if temp is empty)
+        choices = [] if temp().empty else list(temp().columns)
 
         # Update select inputs with available columns
         ui.update_selectize('id_col', choices=choices)
@@ -123,20 +182,26 @@ def upload_modal_server(input, output, session, datasets, _set_data):
 
         return errors
 
-    def clear_and_close():
-        """Clear entered data and close the modal.
-
-        This is reused for user close on button click and to finish processing
-        and close modal after data upload.
+    def process_data(data, id_col, qrs_col, ignore_cols):
+        """Process user uploaded data according to column selections.
+        
+        Args:
+            data: df of user uploaded data
+            id_col: user selected ID col from data
+            qrs_col: user selected QSAR-ready SMILES col from data
+            ignore_cols: user selected columns to ignore
+        Returns:
+            processed data df
         """
-        temp.set(pd.DataFrame())
-        ui.modal_remove()
 
-    @reactive.effect
-    @reactive.event(input.close)
-    def close():
-        """Clear temp data and close the modal on close button click."""
-        clear_and_close()
+        # Set index, drop user ignored columns, and return a deep copy of data
+        return data.copy(deep=True).set_index(id_col)\
+            .drop(columns=[col for col in ignore_cols if not col == qrs_col])
+
+    def clear_and_close():
+        """Clear entered data and close the modal."""
+        clear_temp()
+        ui.modal_remove()
 
     @reactive.effect
     @reactive.event(input.upload)
@@ -144,9 +209,15 @@ def upload_modal_server(input, output, session, datasets, _set_data):
         """Perform data validation and final upload on upload button click."""
 
         # Check for dataset name validation errors
-        errors = validate_name(input.name())
+        errors = validate_name(name := input.name())
         # Check for data and column selection validation errors
-        errors.extend(validate_data(temp(), input.id_col(), input.qrs_col()))
+        errors.extend(
+            validate_data(
+                temp(),
+                id_col := input.id_col(),
+                qrs_col := input.qrs_col()
+            )
+        )
 
         # Short-circuit with notification(s) if needed
         if len(errors) > 0:
@@ -155,21 +226,22 @@ def upload_modal_server(input, output, session, datasets, _set_data):
                 error_notification(err)
             return # Stop processing, but do not close the modal
 
-        # Set index, drop user ignored columns, and propagate a copy of data
-        cdrop = [c for c in input.ignore_cols() if not c == input.qrs_col()]
-        data = temp().copy(deep=True)\
-            .set_index(input.id_col()).drop(columns=cdrop)
+        # Process data and calculate descriptors
+        data = process_data(temp(), id_col, qrs_col, input.ignore_cols())
+        desc = calculate_ionization_efficiency(data[qrs_col], data.index)
 
-        # Calculate ionization efficiency descriptors and TSNE
-        desc = calculate_ionization_efficiency(
-            data[input.qrs_col()], data.index, with_tsne=True)
+        # Save data frames as parquet files
+        save_data(name, data, desc)
 
         # Use callback to update global app data
         _set_data(data, desc)
 
-        # Save data frames as parquet files
-        save_data(input.name(), data, desc)
-
         # Show success notification, clear temp data, and close modal
         load_success_notification(data.shape[0], desc.shape[0])
+        clear_and_close()
+
+    @reactive.effect
+    @reactive.event(input.close)
+    def close():
+        """Clear temp data and close modal on close button click."""
         clear_and_close()

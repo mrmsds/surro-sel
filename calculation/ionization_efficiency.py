@@ -43,13 +43,13 @@ _desc_calculator = Calculator([
 # TSNE calculation pipeline with feature standardization
 _tsne_pipeline = make_pipeline(StandardScaler(), TSNE(random_state=2025))
 
-def calculate_ionization_efficiency(smiles, index, with_tsne):
+def calculate_ionization_efficiency(smiles, index, with_tsne=True):
     """Calculate descriptors and optional TSNE embedding for structures.
     
     Args:
         smiles: standardized SMILES strings to calculate descriptors for
         index: index values to attach to the resulting df
-        with_tsne: include TSNE coordinates in output?
+        with_tsne: include TSNE coordinates in output
     Returns:
         df of descriptors and (optional) TSNE coordinates
     """

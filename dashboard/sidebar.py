@@ -1,3 +1,9 @@
+"""Sidebar containing user inputs to surrogate selection.
+
+This module defines a sidebar interface for users to input parameters for
+automated surrogate selection or to manually select surrogates for
+comparison.
+"""
 
 import numpy as np
 from shiny import module, reactive, req, ui
@@ -44,15 +50,6 @@ def dashboard_sidebar():
 def dashboard_sidebar_server(input, output, session, desc, _set_labels):
 
     @reactive.effect
-    @reactive.event(desc)
-    def clear():
-        """Clear surrogate selection inputs when data changes."""
-        ui.update_selectize('strats', selected=DEFAULT_STRATS)
-        ui.update_numeric('n', value=DEFAULT_N)
-        ui.update_switch('include_user', value=False)
-        ui.update_text_area('user_surr', value='')
-
-    @reactive.effect
     @reactive.event(input.select)
     def select():
         # Check input validity
@@ -94,3 +91,12 @@ def dashboard_sidebar_server(input, output, session, desc, _set_labels):
                 strats[i].append(s)
         _set_labels(
             ['&'.join(sorted(s)) if s else 'none' for s in strats.values()])
+
+    @reactive.effect
+    @reactive.event(desc)
+    def clear():
+        """Clear surrogate selection inputs when dataset changes."""
+        ui.update_selectize('strats', selected=DEFAULT_STRATS)
+        ui.update_numeric('n', value=DEFAULT_N)
+        ui.update_switch('include_user', value=False)
+        ui.update_text_area('user_surr', value='')

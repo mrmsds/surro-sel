@@ -8,6 +8,7 @@ DEFAULT_DURATION = 3
 DEFAULT_TYPE = 'message'
 LOAD_SUCCESS_MESSAGE = 'Successfully loaded %d records (%d structurable).'
 
+
 class ValidationErrors(StrEnum):
     """Enum for application form validation error types."""
     NO_NAME = auto()
@@ -15,16 +16,20 @@ class ValidationErrors(StrEnum):
     NAME_INVALID = auto()
     NAME_DUP = auto()
     NO_FILE = auto()
+    FILE_INVALID = auto()
     COLS_DUP = auto()
     NO_STRAT = auto()
     NO_N = auto()
 
+
 ERROR_MESSAGES = {
     ValidationErrors.NO_NAME: 'Dataset name is required.',
-    ValidationErrors.NAME_INVALID: 'Invalid dataset name. Requires 2-32 chars;'
-        ' only alphanumerics, underscores, dashes, and spaces are permitted.',
+    ValidationErrors.NAME_INVALID: 'Invalid dataset name: must be unique, at '
+        'least two chars, no more than 32 chars, and contain only '
+        'alphanumerics, underscores, dashes, and spaces.',
     ValidationErrors.NAME_DUP: 'Dataset name already in use.',
-    ValidationErrors.NO_FILE: 'Missing CSV file for upload.',
+    ValidationErrors.NO_FILE: 'Data file is missing, empty, or unparsable.',
+    ValidationErrors.FILE_INVALID: 'Data file could not be parsed.',
     ValidationErrors.COLS_DUP: 'Primary ID and QSAR-ready SMILES column '
         'selections may not be the same.',
     ValidationErrors.NO_STRAT: 'At least one surrogate selection strategy '
