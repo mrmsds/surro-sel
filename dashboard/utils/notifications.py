@@ -19,7 +19,9 @@ class ValidationErrors(StrEnum):
     FILE_INVALID = auto()
     COLS_DUP = auto()
     NO_STRAT = auto()
-    NO_N = auto()
+    N_INVALID = auto()
+    NO_USER = auto()
+    NO_DATA = auto()
 
 
 ERROR_MESSAGES = {
@@ -33,8 +35,11 @@ ERROR_MESSAGES = {
     ValidationErrors.COLS_DUP: 'Primary ID and QSAR-ready SMILES column '
         'selections may not be the same.',
     ValidationErrors.NO_STRAT: 'At least one surrogate selection strategy '
-        'is required.',
-    ValidationErrors.NO_N: 'Number of surrogates must be greater than zero.'
+        'is required for automated selection.',
+    ValidationErrors.N_INVALID: 'A valid number of surrogates is required '
+        'for automated selection.',
+    ValidationErrors.NO_USER: 'No user selected surrogates found.',
+    ValidationErrors.NO_DATA: 'No data loaded for surrogate selection.'
 }
 
 # pylint: disable-next=W0622 # Silence error from overriding built-in 'type'

@@ -37,8 +37,8 @@ def server(input, output, session):
     # Original data and calculated descriptors for current dataset
     data = reactive.value(pd.DataFrame())
     desc = reactive.value(pd.DataFrame())
-    # Data labels (displayed as colors)
-    labels = reactive.value(None)
+    # Surrogate selecteion data
+    surr = reactive.value({})
 
     def set_data(data_, desc_):
         """Callback function to allow child modules to set global data.
@@ -50,21 +50,21 @@ def server(input, output, session):
 
         data.set(data_)
         desc.set(desc_)
-        labels.set(None) # Any time data is changed, labels should reset
+        surr.set({}) # Any time data is changed, surrogates should reset
 
-    def set_labels(labels_):
-        """Callback function to allow child modules to set global labels.
+    def set_surr(surr_):
+        """Callback function to allow child modules to set global surrogates.
 
         Args:
-            labels_: list of new labels
+            surr_: dict of new surrogate selection results
         """
 
-        labels.set(labels_)
+        surr.set(surr_)
 
     # Register server information for child modules
     load_modal_server('load_modal', datasets=datasets, _set_data=set_data)
     upload_modal_server('upload_modal', datasets=datasets, _set_data=set_data)
-    dashboard_sidebar_server('sidebar', desc=desc, _set_labels=set_labels)
+    dashboard_sidebar_server('sidebar', desc=desc, _set_surr=set_surr)
 
     @reactive.effect
     @reactive.file_reader(LAST_UPDATED)
@@ -83,6 +83,15 @@ def server(input, output, session):
     def show_upload_modal():
         """Show upload modal on button click."""
         ui.modal_show(upload_modal('upload_modal'))
+
+    @reactive.calc
+    def surrogate_labels():
+        """Reactively convert surrogate selection data to data point labels."""
+        labels = {i: [] for i in range(desc().shape[0])}
+        for strat, (idx, _) in surr().items():
+            for i in idx:
+                labels[i].append(strat)
+        return ['&'.join(sorted(x)) if x else 'none' for x in labels.values()]
 
 # Run app
 app = App(page, server)

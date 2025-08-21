@@ -6,7 +6,7 @@ comparison.
 """
 
 import numpy as np
-from shiny import module, reactive, req, ui
+from shiny import module, reactive, ui
 
 from calculation.ionization_efficiency import IONIZATION_EFFICIENCY_EMBEDDING
 from calculation.surrogate_selection import SurrogateSelection
@@ -20,24 +20,29 @@ DEFAULT_N = 0.2
 # pylint: disable-next=C0116 # Silence missing docstring error
 def dashboard_sidebar():
     return ui.sidebar(
-        ui.input_selectize(
-            'strats',
-            'Selection Strategies',
-            [s.value for s in SurrogateSelection.Strategy],
-            selected=DEFAULT_STRATS,
-            multiple=True
-        ),
-        ui.tooltip(
-            ui.input_numeric(
-                'n', 'Number of Surrogates', DEFAULT_N, min=0.01, step=0.01),
-            'Values < 1 will be treated as a fraction of the dataset'
-            ' size; values >= 1 will be treated as a raw count.'
+        ui.input_switch(
+            'include_auto', 'Include auto selected surrogates?', True),
+        ui.panel_conditional(
+            'input.include_auto',
+            ui.input_selectize(
+                'strats',
+                'Selection Strategies',
+                [s.value for s in SurrogateSelection.Strategy],
+                selected=DEFAULT_STRATS,
+                multiple=True
+            ),
+            ui.tooltip(
+                ui.input_numeric(
+                    'n', 'Number of Surrogates', DEFAULT_N, min=0.01, step=0.01),
+                'Values < 1 will be treated as a fraction of the dataset'
+                ' size; values >= 1 will be treated as a raw count.'
+            )
         ),
         ui.input_switch('include_user', 'Include user selected surrogates?'),
         ui.panel_conditional(
             'input.include_user',
             ui.input_text_area(
-                'user_surr',
+                'user_ids',
                 'User Selected Surrogate IDs',
                 placeholder='One per line, optional'
             )
@@ -47,50 +52,129 @@ def dashboard_sidebar():
 
 @module.server
 # pylint: disable-next=C0116,W0613,W0622 # Silence server syntax errors
-def dashboard_sidebar_server(input, output, session, desc, _set_labels):
+def dashboard_sidebar_server(input, output, session, desc, _set_surr):
+
+    @reactive.calc
+    def user_idx():
+        """Reactively process user entered surrogate IDs to list of indices."""
+        return np.where(
+            np.isin(desc().index, input.user_ids().splitlines()))[0]
+
+    def validate_auto(n, strats):
+        """Validate inputs to automated surrogate selection.
+        
+        Args:
+            n: user input for number of surrogates to select
+            strats: user selected surrogate selection strategies
+        Returns:
+            error keys if validation failed, or empty list
+        """
+
+        errors = []
+        if not n or n <= 0:
+            errors.append(ValidationErrors.N_INVALID)
+
+        if not strats:
+            errors.append(ValidationErrors.NO_STRAT)
+
+        return errors
+
+    def process_auto(selector, n, strats):
+        """Process automated surrogate selection with user inputs.
+        
+        Args:
+            selector: SurrogateSelection instance with relevant data
+            n: user input number of surrogates
+            strats: user selected surrogate selection strategies
+        Returns:
+            dict of surrogate selections and score for each strategy
+        """
+
+        return {
+            strat: selector.select(n=n, strategy=strat)
+            for strat in strats
+        }
+
+    def validate_user(user_idx):
+        """Validate inputs to manual user surrogate selection.
+        
+        Args:
+            user_idx: indices of user selected surrogates
+        Returns:
+            error keys if validation failed, or empty list
+        """
+
+        errors = []
+        if user_idx.size == 0:
+            errors.append(ValidationErrors.NO_USER)
+
+        return errors
+
+    def process_user(selector, user_idx):
+        """Process manual user surrogate selection with user inputs.
+        
+        Args:
+            user_idx: indices of user selected surrogates
+        Returns:
+            dict entry of surrogate selection and score
+        """
+
+        return {'user': (user_idx, selector.score(user_idx))}
+
+    def process_conditional(switch, selector, _validate_fn, _process_fn, *args):
+        """Chain validation, error display, and processing of selection.
+        
+        Args:
+            switch: condition to check whether selection should be processed
+            selector: SurrogateSelection instance
+            _validate_fn: input validation function
+            _process_fn: input processing function
+            *args: arguments to validation and processing functions
+        Returns:
+            dict of surrogate selections and score for each strategy
+        """
+
+        surr = {}
+        if switch:
+            errors = _validate_fn(*args)
+            if errors:
+                for err in errors:
+                    error_notification(err)
+            else:
+                surr = _process_fn(selector, *args)
+
+        return surr
 
     @reactive.effect
     @reactive.event(input.select)
     def select():
-        # Check input validity
-        valid_n = input.n() > 0
-        valid_strategies = input.strategies() and len(input.strategies()) > 0
+        """Perform surrogate selection on click."""
 
-        # Identify user-input surrogates
-        user_surr = np.where(
-            np.isin(desc().index, input.user_surr().splitlines()))[0]
-        user_n = len(user_surr)
+        # Check data is loaded
+        if desc().empty:
+            error_notification(ValidationErrors.NO_DATA)
+            return # Short-circuit with error notification if not
 
-        # Require at least one valid input to proceed, otherwise exit silently
-        req(valid_n or valid_strategies or user_n > 0)
-
-        # Provide error notifications for invalid inputs to automated selection
-        if valid_n and not valid_strategies:
-            error_notification(ValidationErrors.NO_STRAT)
-            return
-
-        if valid_strategies and not valid_n:
-            error_notification(ValidationErrors.NO_N)
-            return
-
-        # Process automated surrogate selection if inputs are valid
+        # Initialize selector instance
         selector = SurrogateSelection(desc()[IONIZATION_EFFICIENCY_EMBEDDING])
-        surr = {
-            strat: selector.select(n=input.n(), strategy=strat)
-            for strat in input.strategies()
-        } if valid_n and valid_strategies else {}
+        # Process automated and/or user surrogate selection
+        surr = process_conditional(
+            input.include_auto(),
+            selector,
+            validate_auto,
+            process_auto,
+            input.n(),
+            input.strats()
+        ) | process_conditional(
+            input.include_user(),
+            selector,
+            validate_user,
+            process_user,
+            user_idx()
+        )
 
-        # Process user-selected surrogates if provided
-        if user_n > 0:
-            surr['user'] = (user_surr, selector.score(user_surr))
-
-        # Update plot colors
-        strats = {i: [] for i in range(desc().shape[0])}
-        for s, (idx, _) in surr.items():
-            for i in idx:
-                strats[i].append(s)
-        _set_labels(
-            ['&'.join(sorted(s)) if s else 'none' for s in strats.values()])
+        # Update global surrogate selection data using callback
+        _set_surr(surr)
 
     @reactive.effect
     @reactive.event(desc)

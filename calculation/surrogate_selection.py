@@ -26,6 +26,7 @@ from sklearn.preprocessing import StandardScaler
 class SurrogateSelection:
     """Calculator class for chemical space surrogate selection."""
 
+
     class Strategy(StrEnum):
         """Enum for implemented surrogate selection strategies."""
         RANDOM = auto()
@@ -33,6 +34,7 @@ class SurrogateSelection:
         HIGHEST = auto()
         BALANCED = auto()
         HIERARCHICAL = auto()
+
 
     def __init__(self, desc):
         """Constructor for SurrogateSelection calculator class.
@@ -83,7 +85,8 @@ class SurrogateSelection:
         # Calculate "effective" n depending on whether input is < 1
         # pylint: disable-next=C0103 # Silence lowercase variable convention
         X_size = self.X.shape[0]
-        n_eff = round(n * X_size if n < 1 else n)
+        # Ensure n is not larger than dataset size
+        n_eff = min(round(n * X_size if n < 1 else n), X_size)
 
         # Select surrogates based on the specified strategy
         match strategy:

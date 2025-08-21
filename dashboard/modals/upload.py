@@ -120,6 +120,7 @@ def upload_modal_server(input, output, session, datasets, _set_data):
                 error_notification(ValidationErrors.FILE_INVALID)
 
     @reactive.effect()
+    @reactive.event(temp)
     def update_select():
         """Update select inputs with columns from temp when it changes."""
 
