@@ -3,6 +3,10 @@
 import pandas as pd
 from shiny import App, reactive, ui
 
+from dashboard.cards.colorable_scatterplot import (
+    colorable_scatterplot_card,
+    colorable_scatterplot_card_server
+)
 from dashboard.modals.load import load_modal, load_modal_server
 from dashboard.modals.upload import upload_modal, upload_modal_server
 from dashboard.sidebar import dashboard_sidebar, dashboard_sidebar_server
@@ -16,7 +20,10 @@ update_log()
 
 # Main application page UI
 page = ui.page_navbar(
-    ui.nav_panel(''),
+    ui.nav_panel(
+        '',
+        colorable_scatterplot_card('tsne')
+    ),
     ui.nav_spacer(),
     ui.nav_control(ui.input_action_button('load', 'Load Existing Data')),
     ui.nav_control(ui.input_action_button('upload', 'Upload New Data')),
@@ -37,7 +44,7 @@ def server(input, output, session):
     # Original data and calculated descriptors for current dataset
     data = reactive.value(pd.DataFrame())
     desc = reactive.value(pd.DataFrame())
-    # Surrogate selecteion data
+    # Surrogate selection data
     surr = reactive.value({})
 
     def set_data(data_, desc_):
@@ -61,7 +68,7 @@ def server(input, output, session):
 
         surr.set(surr_)
 
-    # Register server information for child modules
+    # Register server information for input modules
     load_modal_server('load_modal', datasets=datasets, _set_data=set_data)
     upload_modal_server('upload_modal', datasets=datasets, _set_data=set_data)
     dashboard_sidebar_server('sidebar', desc=desc, _set_surr=set_surr)
@@ -92,6 +99,17 @@ def server(input, output, session):
             for i in idx:
                 labels[i].append(strat)
         return ['&'.join(sorted(x)) if x else 'none' for x in labels.values()]
+
+    # Register server information for output modules
+    colorable_scatterplot_card_server(
+        'tsne',
+        'Ionization Efficiency TSNE',
+        desc,
+        'TSNE1',
+        'TSNE2',
+        surrogate_labels,
+        legend_title='Surrogate Set'
+    )
 
 # Run app
 app = App(page, server)
