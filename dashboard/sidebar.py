@@ -15,6 +15,9 @@ from dashboard.utils.notifications import ValidationErrors, error_notification
 # Surrogate selection defaults
 DEFAULT_STRATS = [SurrogateSelection.Strategy.HIERARCHICAL]
 DEFAULT_N = 0.2
+# Random simulated surrogate selection comparison parameters
+RANDOM_REPS = 100
+RANDOM_NS = [0.01, 0.1, 0.2, 0.5]
 
 @module.ui
 # pylint: disable-next=C0116 # Silence missing docstring error
@@ -44,7 +47,7 @@ def dashboard_sidebar():
             ui.input_text_area(
                 'user_ids',
                 'User Selected Surrogate IDs',
-                placeholder='One per line, optional'
+                placeholder='One per line'
             )
         ),
         ui.input_task_button('select', 'Select')
@@ -145,6 +148,18 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
 
         return surr
 
+    def simulate_random(selector, ns):
+        scores = []
+        for n in ns:
+            scores.extend([
+                selector.select(n, SurrogateSelection.Strategy.RANDOM)[1]
+                for _ in range(RANDOM_REPS)
+            ])
+        return {
+            'scores': scores,
+            'ns': np.repeat(ns, RANDOM_REPS)
+        }
+
     @reactive.effect
     @reactive.event(input.select)
     def select():
@@ -159,22 +174,39 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
         selector = SurrogateSelection(desc()[IONIZATION_EFFICIENCY_EMBEDDING])
         # Process automated and/or user surrogate selection
         surr = process_conditional(
-            input.include_auto(),
+            include_auto := input.include_auto(),
             selector,
             validate_auto,
             process_auto,
-            input.n(),
+            n_auto := input.n(),
             input.strats()
         ) | process_conditional(
-            input.include_user(),
+            include_user := input.include_user(),
             selector,
             validate_user,
             process_user,
             user_idx()
         )
 
-        # Update global surrogate selection data using callback
-        _set_surr(surr)
+        # Proceed if selection succeeded
+        if surr:
+            ns = RANDOM_NS
+            if include_user and (n_user := len(user_idx())) > 0:
+                ns.append(n_user)
+            if include_auto:
+                ns.append(n_auto)
+
+            # Get effective size of fractional n values and ensure uniqueness
+            unique_int_ns = [
+                n if n >= 1 else round(desc().shape[0] * n)
+                for n in list(set(ns))
+            ]
+
+            # Execute random simulation
+            sim = simulate_random(selector, sorted(unique_int_ns))
+
+            # Update global surrogate selection data using callback
+            _set_surr(surr, sim)
 
     @reactive.effect
     @reactive.event(desc)

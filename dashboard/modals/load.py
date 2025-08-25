@@ -28,7 +28,7 @@ def load_modal_server(input, output, session, datasets, _set_data):
 
     @render.ui
     def name_select():
-        return ui.input_selectize(
+        return ui.input_select(
             'name', 'Dataset Name', choices=[''] + datasets())
 
     @reactive.effect

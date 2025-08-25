@@ -44,9 +44,9 @@ def upload_modal(): # pylint: disable=C0116 # Silence missing docstring error
             accept=[ext.value for ext in FileExtensions],
             multiple=False
         ),
-        ui.input_selectize(
+        ui.input_select(
             'id_col', 'Select Primary ID Column', choices=[]),
-        ui.input_selectize(
+        ui.input_select(
             'qrs_col', 'Select QSAR-Ready SMILES Column', choices=[]),
         ui.input_selectize(
             'ignore_cols', 'Ignore Columns', choices=[], multiple=True),
@@ -128,8 +128,8 @@ def upload_modal_server(input, output, session, datasets, _set_data):
         choices = [] if temp().empty else list(temp().columns)
 
         # Update select inputs with available columns
-        ui.update_selectize('id_col', choices=choices)
-        ui.update_selectize('qrs_col', choices=choices)
+        ui.update_select('id_col', choices=choices)
+        ui.update_select('qrs_col', choices=choices)
         ui.update_selectize('ignore_cols', choices=choices)
 
     def validate_name(name):

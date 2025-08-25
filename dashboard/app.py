@@ -1,18 +1,19 @@
 """Parent module for qNTA SurroSel app."""
 
 import pandas as pd
-from shiny import App, reactive, ui
+from shiny import App, reactive, render, req, ui
+from shinyswatch import theme
 
-from dashboard.cards.colorable_scatterplot import (
-    colorable_scatterplot_card,
-    colorable_scatterplot_card_server
-)
+from dashboard.cards.tsne import tsne_card, tsne_card_server
+from dashboard.cards.property import property_card, property_card_server
+from dashboard.cards.hist import hist_card, hist_card_server
 from dashboard.modals.load import load_modal, load_modal_server
 from dashboard.modals.upload import upload_modal, upload_modal_server
 from dashboard.sidebar import dashboard_sidebar, dashboard_sidebar_server
 from dashboard.utils.files import LAST_UPDATED, update_log, get_datasets
 
 # App formatting constants
+THEME = theme.pulse
 NAVBAR_OPTIONS = {'class': 'bg-primary', 'theme': 'dark'}
 
 # Initialize the data folder and log file on app start
@@ -22,15 +23,44 @@ update_log()
 page = ui.page_navbar(
     ui.nav_panel(
         '',
-        colorable_scatterplot_card('tsne')
+        ui.panel_conditional(
+            # If no data loaded, display an alert
+            'output.no_data_alert',
+            ui.output_ui('no_data_alert')
+        ),
+        ui.panel_conditional(
+            # If data loaded, display output content
+            '!output.no_data_alert',
+            ui.layout_column_wrap(
+                # pylint: disable=E1121 # Silence errors from module calls
+                tsne_card('tsne'),
+                property_card('prop'),
+                width = 1 / 2
+            ),
+            ui.panel_conditional(
+                # If no surrogates found, display an alert
+                'output.no_surr_alert',
+                ui.output_ui('no_surr_alert')
+            ),
+            ui.panel_conditional(
+                # If surrogates found, display output content
+                '!output.no_surr_alert',
+                ui.layout_column_wrap(
+                    # pylint: disable=E1121 # Silence errors from module calls
+                    hist_card('hist'),
+                    width = 1 / 2
+                )
+            )
+        )
     ),
     ui.nav_spacer(),
     ui.nav_control(ui.input_action_button('load', 'Load Existing Data')),
     ui.nav_control(ui.input_action_button('upload', 'Upload New Data')),
     title='qNTA SurroSel',
     fillable=True,
+    theme=THEME,
     navbar_options=ui.navbar_options(**NAVBAR_OPTIONS),
-    # pylint: disable-next=E1121 # Silence errors from module call
+    # pylint: disable-next=E1121 # Silence error from module call
     sidebar=dashboard_sidebar('sidebar')
 )
 
@@ -44,8 +74,10 @@ def server(input, output, session):
     # Original data and calculated descriptors for current dataset
     data = reactive.value(pd.DataFrame())
     desc = reactive.value(pd.DataFrame())
-    # Surrogate selection data
+    # Real surrogate selection data
     surr = reactive.value({})
+    # Simulated random comparison surrogate selection data
+    sim = reactive.value({})
 
     def set_data(data_, desc_):
         """Callback function to allow child modules to set global data.
@@ -55,18 +87,22 @@ def server(input, output, session):
             desc_: df containing calculated descriptors
         """
 
-        data.set(data_)
-        desc.set(desc_)
         surr.set({}) # Any time data is changed, surrogates should reset
+        sim.set({})
 
-    def set_surr(surr_):
+        desc.set(desc_)
+        data.set(data_[data_.index.isin(desc_.index)])
+
+    def set_surr(surr_, sim_):
         """Callback function to allow child modules to set global surrogates.
 
         Args:
             surr_: dict of new surrogate selection results
+            sim_: tuple of new simulated surrogate selection comparison
         """
 
         surr.set(surr_)
+        sim.set(sim_)
 
     # Register server information for input modules
     load_modal_server('load_modal', datasets=datasets, _set_data=set_data)
@@ -94,22 +130,35 @@ def server(input, output, session):
     @reactive.calc
     def surrogate_labels():
         """Reactively convert surrogate selection data to data point labels."""
+
+        # Initialize an empty list of labels for each point
         labels = {i: [] for i in range(desc().shape[0])}
         for strat, (idx, _) in surr().items():
+            # For each in the included surrogate selection strategies...
             for i in idx:
+                # ...add to the labels of all points selected by that strategy
                 labels[i].append(strat)
+
+        # Join all labels for each point into a single string
         return ['&'.join(sorted(x)) if x else 'none' for x in labels.values()]
 
     # Register server information for output modules
-    colorable_scatterplot_card_server(
-        'tsne',
-        'Ionization Efficiency TSNE',
-        desc,
-        'TSNE1',
-        'TSNE2',
-        surrogate_labels,
-        legend_title='Surrogate Set'
-    )
+    tsne_card_server('tsne', desc, surrogate_labels)
+    property_card_server('prop', data, surrogate_labels)
+    hist_card_server('hist', surr, sim)
+
+    @render.ui
+    def no_data_alert():
+        """Display an alert in place of content if no data has been loaded."""
+        req(data().empty)
+        return ui.card('No data found. Load data to begin.', fill=False)
+
+    @render.ui
+    def no_surr_alert():
+        """Display an alert in place of content if no surrogates found."""
+        req(not surr())
+        return ui.card('No surrogates found. Run surrogate selection to see '
+                       'results.', fill=False)
 
 # Run app
 app = App(page, server)
