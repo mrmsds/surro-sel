@@ -7,6 +7,7 @@ from shinyswatch import theme
 from dashboard.cards.tsne import tsne_card, tsne_card_server
 from dashboard.cards.property import property_card, property_card_server
 from dashboard.cards.hist import hist_card, hist_card_server
+from dashboard.cards.report import report_card, report_card_server
 from dashboard.modals.load import load_modal, load_modal_server
 from dashboard.modals.upload import upload_modal, upload_modal_server
 from dashboard.sidebar import dashboard_sidebar, dashboard_sidebar_server
@@ -31,25 +32,26 @@ page = ui.page_navbar(
         ui.panel_conditional(
             # If data loaded, display output content
             '!output.no_data_alert',
-            ui.layout_column_wrap(
+            ui.layout_columns(
                 # pylint: disable=E1121 # Silence errors from module calls
                 tsne_card('tsne'),
                 property_card('prop'),
-                width = 1 / 2
-            ),
-            ui.panel_conditional(
-                # If no surrogates found, display an alert
-                'output.no_surr_alert',
-                ui.output_ui('no_surr_alert')
-            ),
-            ui.panel_conditional(
-                # If surrogates found, display output content
-                '!output.no_surr_alert',
-                ui.layout_column_wrap(
-                    # pylint: disable=E1121 # Silence errors from module calls
-                    hist_card('hist'),
-                    width = 1 / 2
-                )
+                max_height='50%'
+            )
+        ),
+        ui.panel_conditional(
+            # If no surrogates found, display an alert
+            'output.no_surr_alert && !output.no_data_alert',
+            ui.output_ui('no_surr_alert')
+        ),
+        ui.panel_conditional(
+            # If surrogates found, display output content
+            '!output.no_surr_alert && !output.no_data_alert',
+            ui.layout_columns(
+                # pylint: disable=E1121 # Silence errors from module calls
+                hist_card('hist'),
+                report_card('report'),
+                max_height='50%'
             )
         )
     ),
@@ -146,6 +148,7 @@ def server(input, output, session):
     tsne_card_server('tsne', desc, surrogate_labels)
     property_card_server('prop', data, surrogate_labels)
     hist_card_server('hist', surr, sim)
+    report_card_server('report', desc, surr)
 
     @render.ui
     def no_data_alert():
