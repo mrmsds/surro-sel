@@ -11,7 +11,7 @@ from faicons import icon_svg
 from shiny import module, req, ui
 from shinywidgets import output_widget, render_plotly
 
-from dashboard.cards.shared import PLOTLY_TEMPLATE
+from dashboard.cards._shared import PLOTLY_TEMPLATE
 
 @module.ui
 def hist_card(): # pylint: disable=C0116 # Silence docstring error

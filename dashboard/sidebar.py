@@ -76,7 +76,7 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
         return np.where(
             np.isin(desc().index, input.user_ids().splitlines()))[0]
 
-    def validate_auto(n, strats):
+    def _validate_auto(n, strats):
         """Validate inputs to automated surrogate selection.
         
         Args:
@@ -95,7 +95,7 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
 
         return errors
 
-    def process_auto(selector, n, strats):
+    def _process_auto(selector, n, strats):
         """Process automated surrogate selection with user inputs.
         
         Args:
@@ -111,7 +111,7 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
             for strat in strats
         }
 
-    def validate_user(user_idx):
+    def _validate_user(user_idx):
         """Validate inputs to manual user surrogate selection.
         
         Args:
@@ -126,7 +126,7 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
 
         return errors
 
-    def process_user(selector, user_idx):
+    def _process_user(selector, user_idx):
         """Process manual user surrogate selection with user inputs.
         
         Args:
@@ -137,7 +137,7 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
 
         return {'user': (user_idx, selector.score(user_idx))}
 
-    def process_conditional(switch, selector, _validate_fn, _process_fn, *args):
+    def _process_conditional(switch, selector, _validate_fn, _process_fn, *args):
         """Chain validation, error display, and processing of selection.
         
         Args:
@@ -161,7 +161,7 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
 
         return surr
 
-    def simulate_random(selector, ns):
+    def _simulate_random(selector, ns):
         scores = []
         for n in ns:
             scores.extend([
@@ -186,18 +186,18 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
         # Initialize selector instance
         selector = SurrogateSelection(desc()[IONIZATION_EFFICIENCY_EMBEDDING])
         # Process automated and/or user surrogate selection
-        surr = process_conditional(
+        surr = _process_conditional(
             include_auto := input.include_auto(),
             selector,
-            validate_auto,
-            process_auto,
+            _validate_auto,
+            _process_auto,
             n_auto := input.n(),
             input.strats()
-        ) | process_conditional(
+        ) | _process_conditional(
             include_user := input.include_user(),
             selector,
-            validate_user,
-            process_user,
+            _validate_user,
+            _process_user,
             user_idx()
         )
 
@@ -216,7 +216,7 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
             ]
 
             # Execute random simulation
-            sim = simulate_random(selector, sorted(unique_int_ns))
+            sim = _simulate_random(selector, sorted(unique_int_ns))
 
             # Update global surrogate selection data using callback
             _set_surr(surr, sim)

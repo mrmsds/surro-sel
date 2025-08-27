@@ -66,11 +66,11 @@ def upload_modal_server(input, output, session, datasets, _set_data):
     # used to populate selectors before processing & persisting the data
     temp = reactive.value(pd.DataFrame())
 
-    def clear_temp():
+    def _clear_temp():
         """Reset temp reactive to an empty data frame."""
         temp.set(pd.DataFrame())
 
-    def read_file(file):
+    def _read_file(file):
         """Read a pandas df from a variety of tabular data formats.
         
         Args:
@@ -95,44 +95,8 @@ def upload_modal_server(input, output, session, datasets, _set_data):
                 df = pd.read_table(content, sep=None, engine='python')
 
         return df
-
-    @reactive.effect
-    @reactive.event(input.file)
-    def upload_temp():
-        """Read the uploaded file into the temp reactive when input changes."""
-
-        # Check if user has provided a file
-        file = input.file()
-        if not file:
-            # Reset temp data and stop processing if no file contents
-            clear_temp()
-            return
-
-        try:
-            # Attempt parsing file contents
-            temp.set(read_file(file[0]))
-        except (pd.errors.EmptyDataError, pd.errors.ParserError):
-            # Reset temp data if parser errored out
-            clear_temp()
-        finally:
-            # If final data is empty for any reason, notify user
-            if temp().empty:
-                error_notification(ValidationErrors.FILE_INVALID)
-
-    @reactive.effect()
-    @reactive.event(temp)
-    def update_select():
-        """Update select inputs with columns from temp when it changes."""
-
-        # Get available columns from temp data (or empty list if temp is empty)
-        choices = [] if temp().empty else list(temp().columns)
-
-        # Update select inputs with available columns
-        ui.update_select('id_col', choices=choices)
-        ui.update_select('qrs_col', choices=choices)
-        ui.update_selectize('ignore_cols', choices=choices)
-
-    def validate_name(name):
+    
+    def _validate_name(name):
         """Validate user input dataset name.
 
         Based on the current name conditions, no more than one error will
@@ -158,7 +122,7 @@ def upload_modal_server(input, output, session, datasets, _set_data):
 
         return errors
 
-    def validate_data(data, id_col, qrs_col):
+    def _validate_data(data, id_col, qrs_col):
         """Validate user input data and column selections.
 
         Based on the current conditions, no more than one error will
@@ -183,7 +147,7 @@ def upload_modal_server(input, output, session, datasets, _set_data):
 
         return errors
 
-    def process_data(data, id_col, qrs_col, ignore_cols):
+    def _process_data(data, id_col, qrs_col, ignore_cols):
         """Process user uploaded data according to column selections.
         
         Args:
@@ -199,10 +163,46 @@ def upload_modal_server(input, output, session, datasets, _set_data):
         return data.copy(deep=True).set_index(id_col)\
             .drop(columns=[col for col in ignore_cols if not col == qrs_col])
 
-    def clear_and_close():
+    def _clear_and_close():
         """Clear entered data and close the modal."""
-        clear_temp()
+        _clear_temp()
         ui.modal_remove()
+
+    @reactive.effect
+    @reactive.event(input.file)
+    def upload_temp():
+        """Read the uploaded file into the temp reactive when input changes."""
+
+        # Check if user has provided a file
+        file = input.file()
+        if not file:
+            # Reset temp data and stop processing if no file contents
+            _clear_temp()
+            return
+
+        try:
+            # Attempt parsing file contents
+            temp.set(_read_file(file[0]))
+        except (pd.errors.EmptyDataError, pd.errors.ParserError):
+            # Reset temp data if parser errored out
+            _clear_temp()
+        finally:
+            # If final data is empty for any reason, notify user
+            if temp().empty:
+                error_notification(ValidationErrors.FILE_INVALID)
+
+    @reactive.effect()
+    @reactive.event(temp)
+    def update_select():
+        """Update select inputs with columns from temp when it changes."""
+
+        # Get available columns from temp data (or empty list if temp is empty)
+        choices = [] if temp().empty else list(temp().columns)
+
+        # Update select inputs with available columns
+        ui.update_select('id_col', choices=choices)
+        ui.update_select('qrs_col', choices=choices)
+        ui.update_selectize('ignore_cols', choices=choices)
 
     @reactive.effect
     @reactive.event(input.upload)
@@ -210,10 +210,10 @@ def upload_modal_server(input, output, session, datasets, _set_data):
         """Perform data validation and final upload on upload button click."""
 
         # Check for dataset name validation errors
-        errors = validate_name(name := input.name())
+        errors = _validate_name(name := input.name())
         # Check for data and column selection validation errors
         errors.extend(
-            validate_data(
+            _validate_data(
                 temp(),
                 id_col := input.id_col(),
                 qrs_col := input.qrs_col()
@@ -228,7 +228,7 @@ def upload_modal_server(input, output, session, datasets, _set_data):
             return # Stop processing, but do not close the modal
 
         # Process data and calculate descriptors
-        data = process_data(temp(), id_col, qrs_col, input.ignore_cols())
+        data = _process_data(temp(), id_col, qrs_col, input.ignore_cols())
         desc = calculate_ionization_efficiency(data[qrs_col], data.index)
 
         # Save data frames as parquet files
@@ -239,10 +239,10 @@ def upload_modal_server(input, output, session, datasets, _set_data):
 
         # Show success notification, clear temp data, and close modal
         load_success_notification(data.shape[0], desc.shape[0])
-        clear_and_close()
+        _clear_and_close()
 
     @reactive.effect
     @reactive.event(input.close)
     def close():
         """Clear temp data and close modal on close button click."""
-        clear_and_close()
+        _clear_and_close()

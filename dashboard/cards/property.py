@@ -3,7 +3,7 @@
 import numpy as np
 from shiny import module, reactive, render, ui
 
-from dashboard.cards.shared import (
+from dashboard.cards._shared import (
     colorable_scatterplot, colorable_scatterplot_server)
 
 @module.ui
@@ -32,7 +32,9 @@ def property_card_server(input, output, session, data, labels):
 
     def _num_cols_select(ax):
         return ui.input_select(
-            ax.lower() + 'col', ax.upper() + '-axis Property', choices=num_cols())
+            ax.lower() + 'col', ax.upper() + '-axis Property',
+            choices=num_cols()
+        )
 
     @render.ui
     def xcol_select():

@@ -78,7 +78,22 @@ def server(input, output, session):
     # Simulated random comparison surrogate selection data
     sim = reactive.value({})
 
-    def set_data(data_, desc_):
+    @reactive.calc
+    def surrogate_labels():
+        """Reactively convert surrogate selection data to data point labels."""
+
+        # Initialize an empty list of labels for each point
+        labels = {i: [] for i in range(desc().shape[0])}
+        for strat, (idx, _) in surr().items():
+            # For each in the included surrogate selection strategies...
+            for i in idx:
+                # ...add to the labels of all points selected by that strategy
+                labels[i].append(strat)
+
+        # Join all labels for each point into a single string
+        return ['&'.join(sorted(x)) if x else 'none' for x in labels.values()]
+
+    def _set_data(data_, desc_):
         """Callback function to allow child modules to set global data.
 
         Args:
@@ -92,7 +107,7 @@ def server(input, output, session):
         desc.set(desc_)
         data.set(data_[data_.index.isin(desc_.index)])
 
-    def set_surr(surr_, sim_):
+    def _set_surr(surr_, sim_):
         """Callback function to allow child modules to set global surrogates.
 
         Args:
@@ -103,10 +118,14 @@ def server(input, output, session):
         surr.set(surr_)
         sim.set(sim_)
 
-    # Register server information for input modules
-    load_modal_server('load_modal', datasets=datasets, _set_data=set_data)
-    upload_modal_server('upload_modal', datasets=datasets, _set_data=set_data)
-    dashboard_sidebar_server('sidebar', desc=desc, _set_surr=set_surr)
+    # Register server information for child modules
+    load_modal_server('load_modal', datasets=datasets, _set_data=_set_data)
+    upload_modal_server('upload_modal', datasets=datasets, _set_data=_set_data)
+    dashboard_sidebar_server('sidebar', desc=desc, _set_surr=_set_surr)
+    tsne_card_server('tsne', desc, surrogate_labels)
+    property_card_server('prop', data, surrogate_labels)
+    hist_card_server('hist', surr, sim)
+    report_card_server('report', desc, surr)
 
     @reactive.effect
     @reactive.file_reader(LAST_UPDATED)
@@ -125,27 +144,6 @@ def server(input, output, session):
     def show_upload_modal():
         """Show upload modal on button click."""
         ui.modal_show(upload_modal('upload_modal'))
-
-    @reactive.calc
-    def surrogate_labels():
-        """Reactively convert surrogate selection data to data point labels."""
-
-        # Initialize an empty list of labels for each point
-        labels = {i: [] for i in range(desc().shape[0])}
-        for strat, (idx, _) in surr().items():
-            # For each in the included surrogate selection strategies...
-            for i in idx:
-                # ...add to the labels of all points selected by that strategy
-                labels[i].append(strat)
-
-        # Join all labels for each point into a single string
-        return ['&'.join(sorted(x)) if x else 'none' for x in labels.values()]
-
-    # Register server information for output modules
-    tsne_card_server('tsne', desc, surrogate_labels)
-    property_card_server('prop', data, surrogate_labels)
-    hist_card_server('hist', surr, sim)
-    report_card_server('report', desc, surr)
 
     @render.ui
     def no_data_alert():

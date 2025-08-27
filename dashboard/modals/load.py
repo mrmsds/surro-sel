@@ -26,11 +26,6 @@ def load_modal(): # pylint: disable=C0116 # Silence missing docstring error
 # pylint: disable-next=C0116,W0622,W0613 # Silence errors from server syntax
 def load_modal_server(input, output, session, datasets, _set_data):
 
-    @render.ui
-    def name_select():
-        return ui.input_select(
-            'name', 'Dataset Name', choices=[''] + datasets())
-
     @reactive.effect
     @reactive.event(input.load)
     def load():
@@ -50,3 +45,8 @@ def load_modal_server(input, output, session, datasets, _set_data):
 
         # Close modal
         ui.modal_remove()
+
+    @render.ui
+    def name_select():
+        return ui.input_select(
+            'name', 'Dataset Name', choices=[''] + datasets())

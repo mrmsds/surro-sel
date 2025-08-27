@@ -2,7 +2,7 @@
 
 from shiny import module, reactive, ui
 
-from dashboard.cards.shared import (
+from dashboard.cards._shared import (
     colorable_scatterplot, colorable_scatterplot_server)
 
 @module.ui
@@ -18,7 +18,7 @@ def tsne_card(): # pylint: disable=C0116 # Silence docstring error
 # pylint: disable-next=C0116,W0613,W0622 # Silence server syntax errors
 def tsne_card_server(input, output, session, desc, labels):
 
-    def make_constant_reactive(cnst):
+    def _make_constant_reactive(cnst):
         return reactive.calc(lambda: cnst)
 
     # pylint: disable-next=E1120 # Silence error from module call
@@ -26,8 +26,8 @@ def tsne_card_server(input, output, session, desc, labels):
         'plot',
         desc,
         labels,
-        make_constant_reactive('TSNE1'),
-        make_constant_reactive('TSNE2'),
+        _make_constant_reactive('TSNE1'),
+        _make_constant_reactive('TSNE2'),
         showlog=False,
         legend_title='Surrogate Set'
     )

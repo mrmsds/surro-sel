@@ -7,7 +7,7 @@ def report_card(): # pylint: disable=C0116 # Silence docstring error
     return ui.card(
         ui.card_header('Surrogate Selection Report'),
         ui.card_body(
-            ui.output_text_verbatim('text')
+            ui.output_text_verbatim('report')
         ),
     )
 
@@ -16,7 +16,7 @@ def report_card(): # pylint: disable=C0116 # Silence docstring error
 def report_card_server(input, output, session, desc, surr):
 
     @render.text
-    def text():
+    def report():
         req(surr())
         return '\n====================\n'.join([
             f'{strat.upper()}\nLARD: {float(res[1]):.3g}\n'

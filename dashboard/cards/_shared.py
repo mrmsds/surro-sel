@@ -16,10 +16,14 @@ import plotly.graph_objects as go
 from shiny import module, req
 from shinywidgets import output_widget, render_widget
 
+# Universal plotly format parameters
 PLOTLY_TEMPLATE = 'plotly_white'
 PLOTLY_COLORS = px.colors.qualitative.Safe
 
-PUBCHEM_URL = 'https://pubchem.ncbi.nlm.nih.gov/#query=%s'
+# Search URL for instant data point investigation (currently PubChem)
+SEARCH_URL = 'https://pubchem.ncbi.nlm.nih.gov/#query=%s'
+# Join string for searching multiple IDs (' OR ' for PubChem)
+BATCH_SEARCH_JOIN_STR = ' OR '
 
 @module.ui
 # pylint: disable-next=C0116 # Silence docstring error
@@ -85,12 +89,20 @@ def colorable_scatterplot_server(
                 _log_menu_button('linear', ax), _log_menu_button('log', ax)]
         } | loc
 
+    def _get_event_ids(trace, points):
+        return trace['hovertext'][points.point_inds]
+
     def _on_click(trace, points, state): # pylint: disable=W0613
-        """Open PubChem search in a new tab when a data point is clicked."""
+        """Open search in a new tab when a data point is clicked."""
         if len(points.point_inds) == 1:
             # This is a cheat that works since we labeled points with the index
-            open_new_tab(
-                PUBCHEM_URL % trace['hovertext'][points.point_inds][0])
+            open_new_tab(SEARCH_URL % _get_event_ids(trace, points)[0])
+
+    def _on_selection(trace, points, state): # pylint: disable=W0613
+        """Open batch search in a new tab when data points are selected."""
+        if len(points.point_inds) > 0:
+            ids = _get_event_ids(trace, points)
+            open_new_tab(SEARCH_URL % BATCH_SEARCH_JOIN_STR.join(ids))
 
     @render_widget
     def plot():
@@ -113,9 +125,10 @@ def colorable_scatterplot_server(
             color_discrete_sequence=PLOTLY_COLORS
         ).update_layout(updatemenus=menus, **layout_kwargs)
 
-        # Set up the figure widget to register click and selection handlers
+        # Set up the figure widget to register click handler
         widg = go.FigureWidget(fig.data, fig.layout)
         for tr in widg.data:
             tr.on_click(_on_click)
+            tr.on_selection(_on_selection)
 
         return widg
