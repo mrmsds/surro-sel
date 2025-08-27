@@ -13,7 +13,7 @@ The ```calculation/``` directory contains reusable calculation modules for ioniz
 The ```dashboard/``` directory contains the structure of the application, written in Shiny for Python. The ```requirements.txt``` file lists package dependencies with versions. The main app file is ```dashboard/app.py```.
 
 ## Running the App
-The Shiny app can be initialized from the command line using the command ```shiny run dashboard.app```. There are no required environment variables or dependencies beyond the packages listed in ```requirements.txt```. Further information on command line arguments to run a Shiny app can be found in the Shiny for Python [https://shiny.posit.co/py/get-started/create-run.html][tutorials], [API reference][https://shiny.posit.co/py/api/core/run_app.html], or using the command ```shiny run --help```.
+The Shiny app can be initialized from the command line using the command ```shiny run dashboard.app```. There are no required environment variables or dependencies beyond the packages listed in ```requirements.txt```. Further information on command line arguments to run a Shiny app can be found in the Shiny for Python [tutorials](https://shiny.posit.co/py/get-started/create-run.html), [API reference](https://shiny.posit.co/py/api/core/run_app.html), or using the command ```shiny run --help```.
 
 ## Correspondence
 Please contact gabriel@dashdashdot.org (@mrmsds) for deployment assistance, questions, or issues.
