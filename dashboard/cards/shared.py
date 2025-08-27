@@ -9,12 +9,17 @@ Additional formatting constants are provided for use in custom plotly
 visualizations in other modules.
 """
 
+from webbrowser import open_new_tab
+
 import plotly.express as px
+import plotly.graph_objects as go
 from shiny import module, req
-from shinywidgets import output_widget, render_plotly
+from shinywidgets import output_widget, render_widget
 
 PLOTLY_TEMPLATE = 'plotly_white'
 PLOTLY_COLORS = px.colors.qualitative.Safe
+
+PUBCHEM_URL = 'https://pubchem.ncbi.nlm.nih.gov/#query=%s'
 
 @module.ui
 # pylint: disable-next=C0116 # Silence docstring error
@@ -80,13 +85,23 @@ def colorable_scatterplot_server(
                 _log_menu_button('linear', ax), _log_menu_button('log', ax)]
         } | loc
 
-    @render_plotly
+    def _on_click(trace, points, state): # pylint: disable=W0613
+        """Open PubChem search in a new tab when a data point is clicked."""
+        if len(points.point_inds) == 1:
+            # This is a cheat that works since we labeled points with the index
+            open_new_tab(
+                PUBCHEM_URL % trace['hovertext'][points.point_inds][0])
+
+    @render_widget
     def plot():
-        """Build the main figure component for the plot."""
+        """Build the main figure widget component for the plot."""
         req(xcol() and ycol() and not data().empty)
+
         # Show or hide log-scale axis menus
         menus = [_log_menu('x'), _log_menu('y')] if showlog else []
-        return px.scatter(
+
+        # Build the base figure
+        fig = px.scatter(
             data(),
             x=xcol(),
             y=ycol(),
@@ -97,3 +112,10 @@ def colorable_scatterplot_server(
             template=PLOTLY_TEMPLATE,
             color_discrete_sequence=PLOTLY_COLORS
         ).update_layout(updatemenus=menus, **layout_kwargs)
+
+        # Set up the figure widget to register click and selection handlers
+        widg = go.FigureWidget(fig.data, fig.layout)
+        for tr in widg.data:
+            tr.on_click(_on_click)
+
+        return widg
