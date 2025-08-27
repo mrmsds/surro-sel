@@ -6,6 +6,7 @@ comparison.
 """
 
 import numpy as np
+from faicons import icon_svg
 from shiny import module, reactive, ui
 
 from calculation.ionization_efficiency import IONIZATION_EFFICIENCY_EMBEDDING
@@ -34,11 +35,23 @@ def dashboard_sidebar():
                 selected=DEFAULT_STRATS,
                 multiple=True
             ),
-            ui.tooltip(
-                ui.input_numeric(
-                    'n', 'Number of Surrogates', DEFAULT_N, min=0.01, step=0.01),
-                'Values < 1 will be treated as a fraction of the dataset'
-                ' size; values >= 1 will be treated as a raw count.'
+            ui.input_numeric(
+                'n',
+                ui.span(
+                    'Number of Surrogates ',
+                    ui.tooltip(
+                        icon_svg('circle-info'),
+                        (
+                            'Values < 1 will be treated as a fraction of the '
+                            'dataset size; values >= 1 will be treated as a '
+                            'raw count.'
+                        ),
+                        placement='right'
+                    )
+                ),
+                DEFAULT_N,
+                min=0.01,
+                step=0.01
             )
         ),
         ui.input_switch('include_user', 'Include user selected surrogates?'),
@@ -212,6 +225,7 @@ def dashboard_sidebar_server(input, output, session, desc, _set_surr):
     @reactive.event(desc)
     def clear():
         """Clear surrogate selection inputs when dataset changes."""
+        ui.update_switch('include_auto', value=True)
         ui.update_selectize('strats', selected=DEFAULT_STRATS)
         ui.update_numeric('n', value=DEFAULT_N)
         ui.update_switch('include_user', value=False)

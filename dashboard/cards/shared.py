@@ -14,7 +14,7 @@ from shiny import module, req
 from shinywidgets import output_widget, render_plotly
 
 PLOTLY_TEMPLATE = 'plotly_white'
-PLOTLY_COLORS = px.colors.qualitative.Prism
+PLOTLY_COLORS = px.colors.qualitative.Safe
 
 @module.ui
 # pylint: disable-next=C0116 # Silence docstring error

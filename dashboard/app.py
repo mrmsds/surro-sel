@@ -2,7 +2,6 @@
 
 import pandas as pd
 from shiny import App, reactive, render, req, ui
-from shinyswatch import theme
 
 from dashboard.cards.tsne import tsne_card, tsne_card_server
 from dashboard.cards.property import property_card, property_card_server
@@ -14,7 +13,6 @@ from dashboard.sidebar import dashboard_sidebar, dashboard_sidebar_server
 from dashboard.utils.files import LAST_UPDATED, update_log, get_datasets
 
 # App formatting constants
-THEME = theme.pulse
 NAVBAR_OPTIONS = {'class': 'bg-primary', 'theme': 'dark'}
 
 # Initialize the data folder and log file on app start
@@ -60,14 +58,13 @@ page = ui.page_navbar(
     ui.nav_control(ui.input_action_button('upload', 'Upload New Data')),
     title='qNTA SurroSel',
     fillable=True,
-    theme=THEME,
     navbar_options=ui.navbar_options(**NAVBAR_OPTIONS),
     # pylint: disable-next=E1121 # Silence error from module call
     sidebar=dashboard_sidebar('sidebar')
 )
 
 # Main application page server
-# pylint: disable-next=C0116,W0622,W0613 # Silence errors from server syntax
+# pylint: disable-next=C0116,W0622,W0613,R0914 # Silence server syntax errors
 def server(input, output, session):
     # pylint: disable=E1120,E1121 # Silence errors from all module calls
 
