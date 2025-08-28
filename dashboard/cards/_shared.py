@@ -3,7 +3,7 @@
 The colorable_scatterplot() module is a reusable module for a reactive
 scatterplot with optional reactive linear/log axes and indexed points that can
 be recolored when global point labels are modified. It may be used, e.g., to
-display a TSNE plot of descriptors or other properties.
+display a t-SNE plot of descriptors or other properties.
 
 Additional formatting constants are provided for use in custom plotly
 visualizations in other modules.

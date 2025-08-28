@@ -1,4 +1,4 @@
-"""Card UI element displaying a TSNE plot of ionization efficiency."""
+"""Card UI element displaying a t-SNE plot of ionization efficiency."""
 
 from shiny import module, reactive, ui
 
@@ -8,7 +8,7 @@ from dashboard.cards._shared import (
 @module.ui
 def tsne_card(): # pylint: disable=C0116 # Silence docstring error
     return ui.card(
-        ui.card_header('Ionization Efficiency TSNE'),
+        ui.card_header('Ionization Efficiency t-SNE'),
         # pylint: disable-next=E1121 # Silence error from module call
         ui.card_body(colorable_scatterplot('plot')),
         full_screen=True
